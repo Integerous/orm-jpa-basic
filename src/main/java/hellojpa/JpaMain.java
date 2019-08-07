@@ -20,7 +20,7 @@ public class JpaMain {
             Member member = new Member();
             member.setId(1L);
             member.setName("HelloA");
-            entityManager.persist(member);
+            entityManager.persist(member); //영속. 이 상태에서 DB에 저장되는 것이 아니다. 트랜잭션을 커밋하는 시점에 DB에 쿼리가 날라간다.
 
             // 조회
             Member findMember = entityManager.find(Member.class, 1L);

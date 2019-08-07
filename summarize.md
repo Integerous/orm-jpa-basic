@@ -10,7 +10,9 @@ EntityManagerFactory 라는 클래스를 생성한다.
 - JPA의 모든 데이터 변경은 트랜잭션 안에서 실행한다.
 - RDB는 데이터 변경을 트랜잭션안에서 실행되도록 다 설계되어 있다. 때문에 트랜잭션을 걸지 않아도 DB가 트랜잭션 개념을 가지고 있기 때문에 트랜잭션 안에서 데이터가 변경된다.
 
+
 ## JPQL
+
 - JPQL은 SQL을 추상화한 객체지향 쿼리이다. (한마디로 JPQL = 객체지향 SQL)
   - JPQL은 Entity 객체를 대상으로 쿼리하고,
   - SQL은 DB 테이블을 대상으로 쿼리한다.
@@ -20,3 +22,72 @@ EntityManagerFactory 라는 클래스를 생성한다.
   - DB의 테이블을 대상으로 쿼리를 날리면 해당 DB에 종속적인 설계가 된다.
   - 때문에 Entity 객체를 대상으로 쿼리를 할 수 있는 JPQL이 제공된 것이다.
 - 방언을 바꿔도 JPQL을 바꿀 필요가 없다. (특정 데이터베이스 SQL에 의존하지 않는다.)
+
+
+## 영속성 컨텍스트 (PersistenceContext)
+
+***JPA에서 가장 중요한 2가지***
+- 객체와 관계형 데이터베이스 매핑하기
+- 영속성 컨텍스트
+
+***영속성 컨텍스트 (PersistenceContext)***
+- 엔티티를 영구 저장하는 환경이라는 뜻
+- `EntityManager.persist(entity);`
+  - 이것은 DB에 저장한다는 것이 아니라, 엔티티를 영속성 컨텍스트에 저장한다는 것이다.
+- 영속성 컨텍스트는 논리적인 개념
+- EntityManager를 통해서 영속성 컨텍스트에 접근한다.
+  - EntityManager 안에 눈에 보이지 않는 PersistenceContext 공간이 생긴다고 이해하면 된다.
+  
+***엔티티의 생명 주기***
+- 비영속(new/transient)
+  - 영속성 컨텍스트와 전혀 관계가 없는 새로운 상태
+- 영속(managed)
+  - 영속성 컨텍스트에 관리되는 상태
+- 준영속(detached)
+  - 영속성 컨텍스트에 저장되었다가 분리된 상태
+- 삭제(removed)
+  - 삭제된 상태
+  
+***비영속***
+~~~java
+//객체를 생성한 상태(비영속)
+Member member = new Membeer();
+member.setId("member1");
+member.setUsername("회원1");
+~~~
+
+***영속***
+~~~java
+//객체를 생성한 상태(비영속)
+Member member = new Membeer();
+member.setId("member1");
+member.setUsername("회원1");
+
+EntityManager em = emf.createEntityManager();
+em.getTransaction().begin();
+
+//객체를 저장한 상태(영속)
+em.persist(member);
+~~~
+
+그런데 `em.persist(member)`를 해서 영속상태가 된다고 DB에 저장되는 것이 아니다.
+트랜잭션을 커밋하는 시점에 DB에 쿼리가 날라간다.
+
+***준영속***
+~~~java
+...
+em.detach(member); //회원 엔티티를 영속성 컨텍스트에서 분리 (준영속 상태)
+~~~
+
+***삭제***
+~~~java
+...
+em.remove(member); // 객체를 삭제한 상태
+~~~
+
+***영속성 컨텍스트의 이점***
+1. 1차 캐시
+2. 동일성(identity) 보장
+3. 트랜잭션을 지원하는 쓰기 지연 (transactional write-behind)
+4. 변경 감지(Dirty Checking)
+5. 지연 로딩(Lazy Loading)
