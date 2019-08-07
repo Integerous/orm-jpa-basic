@@ -6,5 +6,5 @@
 
 ## 개인
 - 강의 관련 프로젝트 진행
-- 내용 정리
+- [내용 정리](https://github.com/Integerous/orm-jpa-basic/blob/master/summarize.md)
 - 블로그 작성
