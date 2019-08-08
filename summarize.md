@@ -187,3 +187,43 @@ JPA는 DB 트랜잭션을 커밋하는 시점에 내부적으로 flush()가 호�
 비교 결과 바뀐 것이 있으면 Update 쿼리를 `쓰기 지연 SQL 저장소`에 저장해 둔다.
 
 그 이후에 flush를 하게 되면, 저장해둔 Update 쿼리를 날린 후에 커밋을 한다.
+
+
+## 플러시 (Flush)
+플러시는 영속성 컨텍스트의 변경내용을 DB에 반영(동기화)하는 것이다.  
+다시 말해, 영속성 컨텍스트에 저장된 쿼리들을 DB에 날려주는 것이다.
+
+
+
+
+***플러시하는 방법***
+1. `em.flush()` 직접 호출
+2. `트랜잭션 커밋` 자동 호출
+3. `JPQL 쿼리 실행` 자동 호출
+
+
+***JPQL 쿼리 실행시 플러시가 자동으로 호출되는 이유***
+~~~java
+em.persist(memberA);
+em.persist(memberB);
+em.persist(memberC);
+
+//중간에 JPQL 실행
+query = em.createQuery("select m from Member m", Member.class);
+List<Member> members = query.getResultList();
+~~~
+
+위의 코드에서 member들이 DB에 저장된 것은 아니기 때문에  
+select 쿼리로 조회해봐도 나오지 않아야 하는 것이 정상이다.  
+하지만 JPQL은 쿼리를 실행할 때 무조건 flush를 날려버리기 때문에 DB에 저장이 되고,  
+select 쿼리로 조회가 가능한 것이다.
+
+
+***플러시 모드 옵션***
+`em.setFlushMode(FlushModeType.COMMIT)`
+- FlushModeType.AUTO
+  - 커밋이나 쿼리를 실행할 때 플러시 (기본값)
+- FlushModeType.COMMIT
+  - 커밋할 때만 플러시
+  
+  
