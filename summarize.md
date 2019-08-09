@@ -238,8 +238,34 @@ select 쿼리로 조회가 가능한 것이다.
   - 영속성 컨텍스트를 완전히 초기화
 3. `em.close()`
   - 영속성 컨텍스트를 종료
-  
-  
+
+
+# 데이터베이스 스키마 자동 생성
+- JPA는 어플리케이션 로딩 시점에 DB 테이블을 생성하는 기능을 제공한다. (운영에서는 쓰면 안되고 개발 환경에서 편하다)
+- DB 방언을 활용해서 DB에 적절한 DDL을 생성한다.  
+- 생성된 DDL은 운영환경에서는 사용하지 않고 적절하게 다듬은 후에 사용해야 한다.
+
+### hibernate.hbm2ddl.auto
+- create : 기존 테이블 삭제 후 다시 생성 (DROP + CREATE)
+- create-drop : create와 같으나 종료 시점에 테이블 DROP
+- update : 변경된 내용만 반영(운영DB에는 사용 금지, 삭제는 반영 안됌)
+- validate : 엔티티와 테이블이 정상 매핑되었는지만 확인
+- none : 사용하지 않음
+
+### 주의사항
+- **운영장비에는 절대 create, create-drop, update를 사용하면 안된다.**
+- 개발 초기 단계는 create / update
+- 테스트 서버는 update / validate (가급적 테스트 서버에도 쓰지 말라)
+- 스테이징과 운영 서버는 vaildate / none
+
+### DDL 생성 기능
+- 제약조건 추가
+  - 회원 이름은 필수, 10자 초과X => `@Column(nullable = false, length = 10)`
+- 유니크 제약조건 추가
+  - `@Table(uniqueConstraints = {@UniqueConstraint( name = "NAME_AGE_UNIQUE", columnNames = {"NAME", "AGE"} )})`
+- DDL 생성 기능은 DDL을 자동 생성할 때만 사용되고,  JPA의 실행 로직에는 영향을 주지 않는다.
+
+
 # 엔티티 매핑
 
 ### @Entity
@@ -255,3 +281,4 @@ select 쿼리로 조회가 가능한 것이다.
 - catalog : 데이터베이스 catalog 매핑
 - schema : 데이터베이스 schema 매핑
 - uniqueConstraints(DDL) : DDL 생성 시에 유니크 제약 조건 생성
+
