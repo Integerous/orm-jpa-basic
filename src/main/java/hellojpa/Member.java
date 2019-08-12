@@ -20,6 +20,9 @@ import java.util.Date;
 public class Member {
 
     @Id
+//    @GeneratedValue(strategy = GenerationType.AUTO) // DB 방언에 맞추어 아래 셋 중에 하나 선택
+    @GeneratedValue(strategy = GenerationType.IDENTITY) // 기본키 생성을 DB에 위임.
+
     private Long id;
 
 //    @Column(name = "name") // 객체는 username이라 쓰고, DB에는 name이라고 쓸 때
