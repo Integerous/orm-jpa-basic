@@ -282,3 +282,29 @@ select 쿼리로 조회가 가능한 것이다.
 - schema : 데이터베이스 schema 매핑
 - uniqueConstraints(DDL) : DDL 생성 시에 유니크 제약 조건 생성
 
+
+# 필드와 컬럼 매핑
+
+### 매핑 어노테이션 정리
+- `@Column` : 컬럼 매핑
+- `@Temporal` : 날짜 타입 매핑
+  - 날짜 타입(java.util.Date, java.util.Calender)을 매핑할 때 사용
+  - 지금은 사실 필요 없다.
+    - Java8에서는 LocalDate, LocalDateTime가 지원되어서 필요없어졌다.
+    - Hibernate 최신버전은 LocalDate와, LocalDateTime을 쓰면 된다.
+- `@Enumerated` : enum 타입 매핑
+  - EnumType.ORDINAL : enum 순서를 데이터베이스에 저장 (기본값)
+    - enum의 순서가 저장되기 때문에 enum에 필드가 추가되거나 순서가 바뀌면 데이터가 다 꼬인다. 그러므로 사용하지 않는다.
+  - EnumType.STRING : enum 이름을 데이터베이스에 저장
+- `@Lob` : BLOB, CLOB 매핑(매핑하는 필드타입이 문자면 CLOB으로 매핑, 나머지는 BLOB 매핑)
+- `@Transient` : DB의 컬럼과 매핑하지 않을 때 사용 (DB랑 관계없이 메모리에서만 계산하고 싶을 때)
+
+### @Column
+- `name` : 필드와 매핑할 테이블의 컬럼 이름 (기본값: 객체의 필드 이름)
+- `insertable/updatable` : 등록, 변경 가능 여부 (기본값: TRUE)
+- `nullable(DDL)` : null 값의 허용 여부를 설정한다. false로 설정하면 DDL 생성 시에 not null 제약조건이 붙는다.
+- `unique(DDL)` : @Table의 uniqueConstraints와 같지만 한 컬럼에 간단히 유니크 제약조건을 걸 때 사용한다.
+- `columnDefinition(DDL)` : 데이터베이스 컬럼 정보를 직접 줄 수 있다. (`varchar(100) default 'EMPTY'`)
+- `length(DDL)` : 문자 길이 제약조건, String 타입에만 사용한다. (기본값: 255)
+- `precision, scale(DDL)` : BigDecimal 타입에서 사용한다(BigInteger도 사용할 수 있다). precision은 소수점을 포함한 전체 자릿수를, scale은 소수의 자릿수다.
+참고로 double, float 타입에는 적용되지 않는다. 정밀한 소수를 다루어야 할 때만 사용한다.
