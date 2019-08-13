@@ -313,7 +313,7 @@ select 쿼리로 조회가 가능한 것이다.
 # 기본 키 매핑
 - `@Id` (직접 할당)
 - `@GeneratedValue` (자동 생성)
-### IDENTITY
+### GenerationType.IDENTITY
 ~~~java
 @Id
 @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -331,7 +331,7 @@ private Long id;
  
 - IDENTITY 전략은 em.persist() 시점에 즉시 INSERT SQL을 실행하고 DB에서 식별자 조회
 
-### SEQUENCE
+### GenerationType.SEQUENCE
 ~~~java
 @Id
 @GeneratedValue(strategy = GenerationType.SEQUENCE)
@@ -373,7 +373,7 @@ public class Member {
     공백이 생긴다고 큰 문제가 되지는 않지만, 50~100 정도로 설정하고 사용하는 것이 바람직하다. 
   - `catalog`, `schema` : DB catalog, schema 이름
   
-### TABLE
+### GenerationType.TABLE
 - 키 생성 전용 테이블을 하나 만들어서 DB 시퀀스를 흉내내는 전략
 - 장점: 모든 DB에 적용 가능
 - 단점: 성능
@@ -411,5 +411,3 @@ public class Member {
 - 예를 들어 주민등록번호도 기본키로 적절하지 않다.
 - **권장: Long형 + 대체키 + 키 생성전략 사용**
 - 비즈니스를 키로 끌고오는 것은 절대 권장하지 않는다.
-
- 
