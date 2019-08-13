@@ -19,7 +19,7 @@ public class JpaMain {
             // 삽입
             Member member = new Member();
             member.setId(1L);
-            member.setName("HelloA");
+            member.setUsername("HelloA");
 
             System.out.println("=== BEFORE ===");
             entityManager.persist(member); //영속. 이 상태에서 DB에 저장되는 것이 아니다. 트랜잭션을 커밋하는 시점에 DB에 쿼리가 날라간다.
@@ -28,13 +28,13 @@ public class JpaMain {
             // 조회
             Member findMember = entityManager.find(Member.class, 1L);
             System.out.println("findMember.id = " + findMember.getId());
-            System.out.println("findMember.name = " + findMember.getName()); //이때 select 쿼리가 안날라간다. 1차캐시에서 가져왔기 때문에.
+            System.out.println("findMember.name = " + findMember.getUsername()); //이때 select 쿼리가 안날라간다. 1차캐시에서 가져왔기 때문에.
 
             // 삭제
             entityManager.remove(findMember);
 
             // 수정
-            findMember.setName("changedName");
+            findMember.setUsername("changedName");
 
             // JPQL
             List<Member> results = entityManager.createQuery("select m from Member as m", Member.class)
@@ -43,7 +43,7 @@ public class JpaMain {
                     .getResultList(); // JPA는 절대 테이블을 대상으로 코드를 짜지 않는다. 테이블이 아니라 객체가 대상이 된다.
 
             for (Member result : results) {
-                System.out.println("member.name = " + result.getName());
+                System.out.println("member.name = " + result.getUsername());
             }
 
             transaction.commit();

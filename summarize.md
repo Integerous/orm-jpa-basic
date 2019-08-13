@@ -411,3 +411,28 @@ public class Member {
 - 예를 들어 주민등록번호도 기본키로 적절하지 않다.
 - **권장: Long형 + 대체키 + 키 생성전략 사용**
 - 비즈니스를 키로 끌고오는 것은 절대 권장하지 않는다.
+
+# 단방향 연관관계
+
+![](https://github.com/Integerous/images/blob/master/study/jpa/jpaModeling1.png?raw=true)
+
+- 객체를 테이블에 맞추어 데이터 중심으로 모델링하면 협력관계를 만들 수 없다.
+
+![](https://github.com/Integerous/images/blob/master/study/jpa/jpaModeling2.png?raw=true)
+
+~~~java
+@Entity
+public class Member {
+    
+    ...
+    
+//    @Column(name = "TEAM_ID")
+//    private Long teamId;
+
+    @ManyToOne
+    @JoinColumn(name = "TEAM_ID") // Member 객체의 team과 MEMBER 테이블의 TEAM_ID(FK)를 연관관계로 매핑한다는 뜻
+    private Team team;
+}
+~~~
+
+![](https://github.com/Integerous/images/blob/master/study/jpa/jpaModeling3.png?raw=true)

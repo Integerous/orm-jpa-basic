@@ -24,12 +24,14 @@
   - 주문할 때 여러 상품을 선택할 수 있다. 반대로 같은 상품도 여러 번 주문될 수 있다.
   - 주문상품 이라는 모델을 만들어서 다대다 관계를 일대다, 다대일 관계로 풀어낸다.
 
-![](https://github.com/Integerous/TIL/blob/master/ETC/images/jpa_table.png?raw=true)
+![](https://github.com/Integerous/images/blob/master/study/jpa/jpa_table.png?raw=true)
 
-![](https://github.com/Integerous/TIL/blob/master/ETC/images/jpa_table2.png?raw=true)
+![](https://github.com/Integerous/images/blob/master/study/jpa/jpa_table2.png?raw=true)
 
 
 ### 데이터 중심 설계의 문제점
 - 위의 방식은 객체 설계를 테이블 설계에 맞춘 방식이다.
 - 테이블의 외래키를 객체에 그대로 가져오는 것인데, 이 경우 객체 그래프 탐색이 불가능하다.
 - 또한, 참조가 없으므로 UML도 잘못되었다.
+- 테이블은 외래키로 조인해서 연관된 테이블을 찾는다면, 객체는 참조를 사용해서 연관된 객체를 찾는다는 큰 차이가 있다.
+

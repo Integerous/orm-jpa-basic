@@ -21,8 +21,9 @@ public class Member {
 
     @Id
 //    @GeneratedValue(strategy = GenerationType.AUTO) // DB 방언에 맞추어 아래 셋 중에 하나 선택
-    @GeneratedValue(strategy = GenerationType.IDENTITY) // 기본키 생성을 DB에 위임.
-
+//    @GeneratedValue(strategy = GenerationType.IDENTITY) // 기본키 생성을 DB에 위임.
+//    @GeneratedValue(strategy = GenerationType.SEQUENCE) // 데이터베이스 시퀀스 오브젝트 사용
+    @GeneratedValue(strategy = GenerationType.TABLE) // 키 생성 전용 테이블을 하나 만들어서 DB 시퀀스를 흉내내는 전략
     private Long id;
 
 //    @Column(name = "name") // 객체는 username이라 쓰고, DB에는 name이라고 쓸 때
