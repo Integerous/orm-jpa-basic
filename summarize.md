@@ -322,8 +322,13 @@ private Long id;
 
 - 기본키 생성을 데이터베이스에 위임
 - 주로 MySQL, PostgreSQL, SQL server, DB2에서 사용
-- JPA는 보통 트랜잭션 커밋 시점에 INSERT SQL 실행
-- AUTO_INCREMENT는 데이터베이스 INSERT SQL을 실행한 이후에 ID값을 알 수 있다.
+- JPA는 보통 트랜잭션 커밋 시점에 INSERT SQL 실행 (즉, DB에 값이 들어가야 ID값을 알 수 있다.)
+  - AUTO_INCREMENT는 데이터베이스 INSERT SQL을 실행한 이후에 ID값을 알 수 있다.
+  - 그런데 영속성 컨텍스트에서 관리되려면 무조건 PK값이 있어야 하는데, 이 경우 PK값이 DB에 들어가봐야 알 수 있다.
+  - 다시 말해, IDENTITY 전략의 경우 1차 캐시의 @Id 값을 DB에 넣기 전까지 모른다.
+  - 때문에 JPA 입장에서 key가 없으니까 값을 넣을 방법이 없었다.
+  - **그래서 IDENTITY 전략에서만 예외적으로 `em.persist()`가 호출되는 시점에 DB에 INSERT 쿼리를 날린다. (원래는 commit 하는 시점에 INSERT 쿼리가 날린다.)**
+ 
 - IDENTITY 전략은 em.persist() 시점에 즉시 INSERT SQL을 실행하고 DB에서 식별자 조회
 
 ### SEQUENCE
@@ -335,6 +340,9 @@ private Long id;
 
 - 데이터베이스 시퀀스 오브젝트 사용
 - 테이블마다 시퀀스를 따로 관리하고 싶으면 아래와 같이 `@SequenceGenerator` 사용
+- **`em.persist()` 호출되기 전에 DB에서 Sequence를 가지고와서 id에 값을 넣어 주고나서, `em.persist()`가 호출되어 영속성 컨텍스트에 저장된다.**
+  - 이 상태에서는 아직 DB에 INSERT 쿼리가 날라가지 않고, 영속성 컨텍스트에 쌓여있다가 트랜잭션 commit 하는 시점에 INSERT 쿼리가 날라간다.
+  - 때문에 SEQUENCE 전략은 버퍼링이 가능한 것이다.(IDENTITY에서는 INSERT 쿼리를 날려야 했기 때문에 불가능하다)
   
 ~~~java
 @Entity
@@ -357,6 +365,12 @@ public class Member {
   - `initialValue` : DDL 생성 시에만 사용됨, 시퀀스 DDL을 생성할 때 처음 1 시작하는 수를 지정한다. (기본값: 1)
   - `allocationSize` : 시퀀스 한 번 호출에 증가하는 수(성능 최적화에 사용됨, **DB 시퀀스 값이 하나씩 증가하도록 설정되어 있으면 이 값을 반드시 1로 설정해야 한다**)
     - 주의!! allocationSize 기본값: 50
+    - 이 속성이 성능 최적화에 쓰이는 이유
+      - SEQUENCE 전략을 사용할 경우, Sequence를 매번 DB에서 가지고오는 과정에서 네트워크를 타는데,
+      - 이 옵션을 사용하면 DB에 50개를 한 번에 올려놓고, 메모리에서 1개씩 쓰는 것이다.
+      - 50개를 모두 사용하면 그 때 next call(call next value for MEMBER_SEQ)을 날려서 또 50개를 올려놓는다.
+    - 이론적으로는 50개보다 더 큰 수로 설정하면 성능에 좋지만, 만약 그 사이에 어플리케이션을 내리면 할당되지 않은 번호들이 날라가서 공백이 생긴다. 
+    공백이 생긴다고 큰 문제가 되지는 않지만, 50~100 정도로 설정하고 사용하는 것이 바람직하다. 
   - `catalog`, `schema` : DB catalog, schema 이름
   
 ### TABLE
