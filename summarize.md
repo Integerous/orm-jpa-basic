@@ -436,3 +436,16 @@ public class Member {
 ~~~
 
 ![](https://github.com/Integerous/images/blob/master/study/jpa/jpaModeling3.png?raw=true)
+
+
+# 양방향 연관관계
+
+![](https://github.com/Integerous/images/blob/master/study/jpa/bidirectionalMapping1.png?raw=true)
+
+- 위의 그림과 같이 양방향 매핑에서 테이블 연관관계는 단방향 연관관계와 변함이 없다.
+  - 그 이유는 **테이블은 TEAM_ID(FK)와 TEAM_ID(PK)를 조인해서 MEMBER로 TEAM을, TEAM으로 MEMBER를 가져올 수 있기 때문이다.** 
+  - 즉, 테이블의 연관관계에서는 외래키 하나로 양방향이 다 있는 것이다. 때문에 테이블의 연관관계에는 방향이라는 개념이 없다.
+  - 문제는 객체다. Member에서 Team으로 갈 수 있지만, Team에서 Member로 갈 수 없기 때문에 양방향 연관관계를 걸어줘야 한다.
+  
+# 연관관계의 주인과 mappedBy
+
