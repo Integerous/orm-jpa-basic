@@ -492,3 +492,55 @@ JOIN MEMBER M ON T.TEAM_ID = M.TEAM_ID
 - 위에서는 Member.team이 연관관계 주인
 - 연관관계 주인이 `team` 이므로, `List<Member> members`에 값을 넣거나 업데이트해도 소용없다.
 - 단, 조회는 가능하다.
+
+
+### 양방향 매핑시 가장 많이 하는 실수
+
+#### 연관관계의 주인에 값을 입력하지 않음
+~~~java
+Team team = new Team();
+team.setName("TeamA");
+em.persist(team);
+
+Member member = new Member();
+member.setName("member1");
+
+//역방향(주인이 아닌 방향)만 연관관계 설정
+team.getMembers().add(member);
+em.persist(member);
+~~~
+
+이 경우 Member를 조회하면 외래키인 TEAM_ID의 값은 Null이다.  
+그러므로 `member.setTeam("TeamA")`으로 연관관계의 주인인 Member의 team에 값을 세팅해야 한다.  
+
+MappedBy로 설정된 곳은 읽기 전용이기 때문에, JPA에서 update하거나 insert할 때(즉, 변경할 때)는 이 부분을 아예 안본다.
+
+
+### 양방향 연관관계 주의
+- 순수 객체 상태를 고려해서 항상 양쪽에 값을 설정한다.
+- 연관관계 편의 메소드를 생성한다.
+  - `team.getMembers().add(member)`를 지우고,
+  - Member 객체에 setTeam 메서드를 아래와 같이 작성한다.
+  ~~~java
+  public void setTeam(Team team) {
+      this.team = team;
+      team.getMembers().add(this);
+  }
+  ~~~
+- 양방향 매핑시 무한 루프를 조심한다.
+  - toString()
+  - lombok
+  - JSON 생성 라이브러리
+    - 보통 Entity에서 직접 Response 해버릴 때 자주 발생하는데,
+    - Entity가 가진 연관관계가 양방향으로 걸려있는 상황에서, 
+    (주로 Controller에서 Entity를 바로 반환하는 경우) Entity를 Json으로 바꿀 때 무한참조가 발생한다.
+  - 해결 방법
+    1. Lombok으로 toString() 쓰지 않기
+    2. Controller에서 Entity를 절대 반환하지 말고, DTO로 변환해서 사용하기
+
+### 양방향 매핑 정리
+- 단방향 매핑만으로도 이미 연관관계 매핑은 완료
+  - 처음에 단방향 매핑으로 설계를 끝내야 한다.
+- 양방향 매핑은 반대 방향으로 조회(객체 그래프 탐색) 기능이 추가된 것일 뿐이다.
+- 객체 입장에서 양방향으로 설계해서 좋을 것이 별로 없다.
+- 실무에서는 역방향으로 탐색할 일이 많지만, 단방향 매핑을 해두고 필요할 때 양방향 매핑을 추가하면 된다.
