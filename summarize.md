@@ -599,3 +599,28 @@ MappedBy로 설정된 곳은 읽기 전용이기 때문에, JPA에서 update하�
 - 연결 테이블을 추가해서 일대다, 다대일 관계로 풀어내야한다.
   - **연결테이블을 엔티티로 승격해서 사용한다.**
 - 객체는 컬렉션을 사용해서 객체 2개로 다대다 관계가 가능하다.
+
+### @JoinColumn
+- 외래키를 매핑할 때 사용
+- 속성
+  - `name` : 매핑할 외래키 이름 (기본값 = 필드명 + _ + 참조하는 테이블의 기본키 컬럼명)
+  - `referencedColumnName` : 외래키가 참조하는 대상 테이블의 컬럼명 (기본값 = 참조하는 테이블의 기본키 컬럼명)
+  - `foreignKey(DDL)` : 외래키 제약조건을 직접 지정할 수 있다. 이 속성은 테이블을 생성할 때만 사용한다.
+  - 그 외 (@Column의 속성과 같다.)
+    - `unique`
+    - `nullable`
+    - `insertable`
+    - `updatable`
+    - `columnDefinition`
+    - `table`
+    
+### @ManyToOne
+- 속성
+  - `optional` : false로 설정하면 연관된 엔티티가 항상 있어야 한다. (기본값 = TRUE)
+  - `fetch` : 글로벌 페치 전략을 설정한다. (@ManyToOne = FetchType.EAGER, @OneToMany = FetchType.LAZY)
+  - `cascade` : 영속성 전이 기능을 사용한다.
+  - `targetEntity` : 연관된 엔티티 타입정보를 설정한다. 이 기능은 거의 사용하지 않는다. 컬렉션을 사용해도 제네릭으로 타입정보를 알 수 있다.
+  
+### @OneToMany
+- 속성
+  - 위와 같고 `optional` 대신 `mappedBy`가 있다. (즉, 연관관계의 주인은 다 쪽이어야 한다.)
