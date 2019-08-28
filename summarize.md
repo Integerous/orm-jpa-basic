@@ -712,3 +712,71 @@ public class Team extends BaseEntity {
     ...
 }
 ~~~
+
+
+# 프록시
+
+### 프록시 기초
+- `em.find()` vs **`em.getReference()`**
+  - `em.find()` : DB를 통해서 실제 Entity 객체 조회
+  - `em.getReference()` : DB 조회를 미루는 가짜(프록시) Entity 객체 조회 (DB에 쿼리가 안나가는데 객체가 조회되는 것)
+    - 하지만 `em.getReference()`로 찾은 것을 실제 사용할 때는 DB에 쿼리가 나간다.
+
+### 프록시 특징
+- 실제 클래스를 상속받아서 만들어짐 (하이버네이트가 내부 라이브러리를 사용해서)
+- 실제 클래스와 겉 모양이 같다.
+- 사용하는 입장에서는 진짜 객체인지 프록시 객체인지 구분하지 않고 사용하면 된다.(이론상)
+- 프록시 객체는 실제 객체의 참조(target)를 보관
+- 프록시 객체를 호출하면 프록시 객체는 실제 객체의 메서드 호출
+
+### 프록시 객체의 초기화
+![](https://github.com/Integerous/images/blob/master/study/jpa/jpa_proxy1.png?raw=true)
+
+- 영속성 컨텍스트를 통해서 초기화 요청을 하는 것이 포인트
+- 프록시 객체는 처음 사용할 때 한 번만 초기화
+- 프록시 객체를 초기화 할 때, 프록시 객체가 실제 Entity로 바뀌는 것이 아니다. **초기화되면 프록시 객체를 통해서 실제 Entity에 접근이 가능해지는 것**이다.
+- 프록시 객체는 원본 Entity를 상속받는다. 때문에 타입 체크시 주의해야 한다.(`==` 비교 실패, 대신 `instance of` 사용)
+- 영속성 컨텍스트에 찾는 Entity가 이미 있으면, `em.getReference()`를 호출해도 실제 Entity를 반환한다.
+  - 첫번째 이유 = 성능
+  - 두번째 이유 = JPA는 같은 트랜잭션 안에서 `==` 비교시 True를 보장해줘야 하기 때문에
+    - 두번째 이유 때문에 `em.getReference()` 이후에 `em.find()`를 하면 둘 다 프록시 객체를 반환한다. (== 비교시 True 보장을 위해)
+    - 즉, 실제 개발할 때 프록시 객체인지 실제 객체인지 신경쓰지 않고 개발할 수 있게 되는 것이다.
+- 영속성 컨텍스트의 도움을 받을 수 없는 준영속 상태일 때, 프록시를 초기화하면 문제 발생. (하이버네이트는 org.hibernate.LazyInitializtionException 예외 발생)
+
+### 프록시 확인
+- 프록시 인스턴스의 초기화 여부 확인
+  - `PersistenceUnitUtil.isLoaded(Object entity)`
+  - `emf.getPersistenceUnitUtil().isLoaded(Object entity)`
+- 프록시 클래스 확인 방법
+  - `entity.getClass().getName()` 출력
+- 프록시 강제 초기화
+  - `org.hibernate.Hibernate.initialize(entity);`
+  - 참고로 JPA 표준은 강제 초기화 없음 (강제 호출: member.getName())
+
+
+# 즉시로딩과 지연로딩
+- 즉시로딩 사용시 실제 객체를 조인해서 한방 쿼리로 조회한다. (초기화가 필요없다.)
+  - 예를 들어 Member를 가지고 올 때 Team도 가지고 온다.
+- 지연로딩 사용시 프록시로 조회한다.
+- 실무에서는 가급전 지연로딩만 사용 권장
+  - 즉시로딩을 적용하면 예상하지 못한 SQL 발생
+  - 즉시로딩은 JPQL에서 N+1 문제를 일으킨다.
+  - `@ManyToOne`, `@OneToOne` 은 디폴트가 EAGER 이므로 LAZY로 바꾼다.
+  - `@OneToMany`, `@ManyToMany`는 디폴트가 LAZY
+
+### N+1 문제
+1. JPQL을 사용할 때 `em.createQuery("select m from Member m", Member.class)`에서 우선 select 쿼리를 그대로 해석해서 일단 Member를 조회하는 select 쿼리가 나간다.
+2. 이후에 Member와 @ManyToOne 관계인 Team의 로딩전략이 EAGER인 것을 확인하고, Team을 조회하는 쿼리가 또 나간다.
+3. 그런데 이때 문제는 Member들이 속한 Team의 개수(N개)만큼 Team을 조회하는 쿼리가 나가는 것이다.
+4. 그래서 최초의 Member를 조회하는 쿼리 1개와 Team을 조회하는 N개 만큼의 쿼리가 나간다고 하여 N+1 문제라고 한다. 
+
+### N+1 문제 해결법
+우선 모든 연관관계를 지연로딩으로 깐다.
+
+1. Fetch Join
+~~~java
+em.createQuery("select m from Member m join fetch m.team", Member.class);
+~~~
+  - LAZY로 설정되어있어도, 위의 쿼리에 따라 Member와 Team을 한방 쿼리로 가지고 온다.
+2. Entity Graph (어노테이션)
+3. Batch Size (N+1 -> 1+1)
