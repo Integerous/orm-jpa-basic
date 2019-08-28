@@ -780,3 +780,49 @@ em.createQuery("select m from Member m join fetch m.team", Member.class);
   - LAZY로 설정되어있어도, 위의 쿼리에 따라 Member와 Team을 한방 쿼리로 가지고 온다.
 2. Entity Graph (어노테이션)
 3. Batch Size (N+1 -> 1+1)
+
+
+# 영속성 전이(CASCADE)
+- 특정 엔티티를 영속상태로 만들 때 연관된 Entity도 함께 영속 상태로 만들 때 사용
+- 영속성 전이는 연관관계를 매핑하는 것과 아무 관련 없다.
+- Parent 뿐만 아니라 다른 객체가 Child와 연관이 있다면 사용하면 안된다. (단일 Entity에 종속적일 때 사용해야 한다.)
+- 
+
+~~~java
+@Entity
+public class Parent {
+    @OneToMany(mappedBy = "parent", cascade = CascadeType.ALL) // Parent를 persist할 때 childList의 child들도 persist 된다.
+    private List<Child> childList = new ArrayList<>();    
+}
+~~~
+
+### Cascade 종류
+- **ALL : 모두 적용** (모든 라이프사이클 맞출 때 사용)
+- **PERSIST : 영속** (저장할 때만 라이프사이클 맞출 때 사용)
+- **REMOVE : 삭제**
+- MERGE : 병합
+- REFRESH
+- DETACH
+
+
+# 고아 객체
+- 고아 객체 제거: 부모 Entity와 연관관계가 끊어진 자식 Entity를 자동으로 삭제
+- `orphanRemoval = true`
+
+~~~java
+Parent parent1 = em.find(Parent.class, id);
+parent1.getChildren().remove(0); //자식 엔티티를 컬렉션에서 제거
+~~~
+
+- 위의 경우 `DELETE FROM CHILD WHERE ID = ?` 쿼리가 나간다.
+- 결국 `CascadeType.ALL` 혹은 `CascadeType.REMOVE` 처럼 동작한다.
+
+### 고아객체 제거 시 주의점
+- **참조하는 곳이 하나일 때 사용해야한다.**
+- 특정 Entity가 개인 소유할 때 사용한다.
+- `@OneToOne`, `@OneToMany`만 가능
+
+### `CascadeType.ALL` + `orphanRemoval = true`
+- 스스로 생명주기를 관리하는 Entity는 em.persist()로 영속화하고 em.remove()로 제거할 수 있다.
+- 그런데 두 옵션을 모두 활성화 하면 부모 Entity를 통해서 자식의 생명주기를 관리할 수 있다.
+- 도메인 주도 설계(DDD)의 Aggregate Root 개념을 구현할 때 유용하다.
