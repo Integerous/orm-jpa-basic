@@ -12,7 +12,7 @@ import java.util.List;
 @Getter
 @Setter
 @Table(name = "ORDERS") //order가 예약어로 걸리는 DB가 있어서
-public class Order {
+public class Order extends BaseEntity{
 
     @Id
     @GeneratedValue
