@@ -8,6 +8,9 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+import static javax.persistence.CascadeType.ALL;
+import static javax.persistence.FetchType.LAZY;
+
 @Entity
 @Getter
 @Setter
@@ -27,17 +30,17 @@ public class Order extends BaseEntity{
         // Long memberId = order.getMemberId();
         // Member member = em.find(Member.class, memberId);
 
-    @ManyToOne
+    @ManyToOne(fetch = LAZY)
     @JoinColumn(name = "MEMBER_ID")
     private Member member;
     // 때문에 위 처럼 Member를 가지고 있는 것이 더 객체지향적이고, 아래와 같이 바로 member를 찾을 수 있어야 한다.
         // Member member = order.getMember();
 
-    @OneToOne
+    @OneToOne(fetch = LAZY, cascade = ALL)
     @JoinColumn(name = "DELIVERY_ID")
     private Delivery delivery;
 
-    @OneToMany(mappedBy = "order")
+    @OneToMany(mappedBy = "order", cascade = ALL)
     private List<OrderItem> orderItems = new ArrayList<>();
 
     private LocalDateTime orderDate; //스프링부트에 올리면 캐멀케이스를 order_date로 변경해서 저장하도록 기본설정 되어있다.
