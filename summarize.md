@@ -673,3 +673,42 @@ MappedBy로 설정된 곳은 읽기 전용이기 때문에, JPA에서 update하�
 - 단점
   - 여러 자식테이블을 함께 조회할 때 성능이 느리다.(UNION SQL)
   - 자식 테이블을 통합해서 쿼리하기 어렵다.
+  
+
+# @MappedSuperclass
+
+- 공통 매핑 정보가 필요할 때 사용(id, name 등)
+- DB에는 각각 id와 name이 있지만, 객체 입장에서 속성만 상속받아서 쓰고 싶을 때 사용.
+- 상속관계 매핑이 아니다.
+- 엔티티가 아니다. 그래서 테이블과 매핑이 되지 않는다.
+- 부모클래스를 상속받는 자식클래스에 매핑 정보만 제공한다. (@MappedSuperclass가 붙은 클래스의 타입으로는 조회가 안된다.)
+  - 참고로 @Entity 클래스는 Entity나 @MappedSuperclass로 지정한 클래스만 상속할 수 있다.
+- 직접 생성해서 사용할 일이 없으므로 추상클래스 권장
+
+
+~~~java
+@MappedSuperclass
+public abstract class BaseEntity {
+
+    private String createdBy;
+    private LocalDateTime createdDate;
+    private String lastModifiedBy;
+    private LocalDateTime lastModifiedDate;
+}
+~~~
+
+이런식으로 생성한 후, 각 엔티티가 이 클래스를 상속받도록 한다.
+
+~~~java
+@Entity
+public class Member extends BaseEntity {
+    ...
+}
+~~~
+
+~~~java
+@Entity
+public class Team extends BaseEntity {
+    ...
+}
+~~~
