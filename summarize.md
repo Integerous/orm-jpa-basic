@@ -881,3 +881,51 @@ parent1.getChildren().remove(0); //자식 엔티티를 컬렉션에서 제거
     // b = 20
     // 같은 인스턴스를 공유하기 때문이다. 하지만 값을 변경할 여지가 없어서 사이드이펙트가 없다.
   ~~~
+  
+### 임베디드 타입(복합값 타입)
+- 새로운 값 타입을 직접 정의할 수 있다.
+- JPA는 임베디드 타입(embedded type)이라고 한다.
+- 주로 기본값 타입을 모아서 만들어서 복합값 타입이라고도 한다.
+- **int, String 처럼 임베디드 타입도 값 타입**이다. (Entity가 아니다.)
+
+#### 임베디드 타입 예시
+![](https://github.com/Integerous/images/blob/master/study/jpa/jpa_embeddedType1.png?raw=true)
+
+#### 임베디드 타입 사용법
+- `@Embeddedable` : 값 타입을 정의하는 곳에 표시
+- `@Embedded` : 값 타입을 사용하는 곳에 표시
+- 기본 생성자 필수
+
+#### 임베디드 타입 장점
+- 재사용 가능
+- 높은 응집도
+- Period.isWork() 처럼 해당 값 타입만 사용하는 의미있는 메서드를 만들 수 있다.
+- 임베디드 타입을 포함한 모든 값 타입은, 값 타입을 소유한 엔티티에 생명주기를 의존한다.
+
+#### 임베디드 타입과 테이블 매핑
+- 임베디드 타입은 Entity의 값일 뿐이다.
+- **임베디드 타입을 사용하기 전과 후에 매핑하는 테이블은 같다.**
+- 객체와 테이블을 아주 세밀하게(fine-grained) 매핑하는 것이 가능하다.
+- 잘 설계한 ORM 어플리케이션은 매핑한 테이블의 수 보다 클래스의 수가 더 많다. 
+
+
+### @AttributeOverride
+- 한 엔티티에서 같은 값 타입을 사용하면?
+  ~~~java
+  @Embedded
+  private Address homeAddress;
+
+  @Embedded // 한 엔티티에서 같은 값 타입을 사용하면 중복된 컬럼 매핑으로 에러가 나므로 아래와 같이 설정한다.
+  @AttributeOverrides({
+          @AttributeOverride(name = "city",
+                  column = @Column(name = "WORK_CITY")),
+          @AttributeOverride(name = "street",
+                  column = @Column(name = "WORK_STREET")),
+          @AttributeOverride(name = "zipcode",
+                  column = @Column(name = "WORK_ZIPCODE"))
+  })
+  private Address workAddress;
+  ~~~
+  
+### 임베디드 타입과 null
+- 임베디드 타입의 값이 null이면 매핑한 컬럼 값은 모두 null
