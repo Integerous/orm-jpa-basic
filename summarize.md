@@ -929,3 +929,58 @@ parent1.getChildren().remove(0); //자식 엔티티를 컬렉션에서 제거
   
 ### 임베디드 타입과 null
 - 임베디드 타입의 값이 null이면 매핑한 컬럼 값은 모두 null
+
+
+# 값 타입과 불변 객체
+- 값 타입은 복잡한 객체 세상을 조금이라도 단순화하려고 만든 개념이다.
+- 따라서 값 타입은 단순하고 안전하게 다룰 수 있어야 한다.
+
+### 값 타입 공유 참조
+- 임베디드 타입 같은 값 타입을 여러 엔티티에서 공유하면 부작용이 발생한다.
+    ~~~java
+    ...
+    Address address = new Address("city", "street", "10000");
+    
+    Member member1 = new Member();
+    member1.setUsername("member1");
+    member1.setHomeAddress(address);
+    em.persist(member1);
+    
+    Member member2 = new Member();
+    member2.setUsername("member2");
+    member2.setHomeAddress(address);
+    em.persist(member2);
+    
+    member1.getHomeAddress().setCity("newCity"); // 이 경우 member1과 member2의 city가 모두 변경된다.
+    ~~~
+- 위와 같이 값 타입의 실제 인스턴스인 값을 공유하는 것은 위험하므로, 아래와 같이 값(인스턴스)을 복사해서 사용해야 한다.
+    ~~~java
+    ...
+    Address address = new Address("city", "street", "10000");
+    
+    Member member1 = new Member();
+    member1.setUsername("member1");
+    member1.setHomeAddress(address);
+    em.persist(member1);
+  
+    //이 부분 추가
+    Address copyAddress = new Address(address.getCity(), address.getStreet(), address.getZip);
+    
+    Member member2 = new Member();
+    member2.setUsername("member2");
+    member2.setHomeAddress(copyAddress); // copyAddress 사용
+    em.persist(member2);
+    
+    member1.getHomeAddress().setCity("newCity"); // 이 경우 member1과 member2의 city가 모두 변경된다.
+    ~~~
+    
+- 위와 항상 값을 복사해서 사용하면 공유 참조로 인해 발생하는 부작용을 피할 수 있지만,
+- 임베디드 타입처럼 직접 정의한 값 타입은 primitive 타입이 아니라 객체 타입이라 참조 값을 직접 대입하는 것을 막을 방법이 없으므로 공유 참조를 피할 수 없다.
+
+
+### 불변 객체
+- 객체 타입을 수정할 수 없게 만들면 공유참조의 부작용을 원천 차단할 수 있다.
+- 그러므로 값 타입은 불변 객체(immutable object)로 설계해야 한다.
+- 불변객체는 **생성 이후에 절대 값을 변경할 수 없는 객체**
+- 생성자로만 값을 설정하고 수정자(Setter)를 만들지 않으면 된다.
+- Integer와 String은 Java가 제공하는 대표적인 불변객체이다.
