@@ -996,3 +996,57 @@ parent1.getChildren().remove(0); //자식 엔티티를 컬렉션에서 제거
   - `equals()` 사용
 - **값 타입은 a.equals(b)를 사용해서 동등성 비교를 해야된다.** (equals(), hashcode() 메서드를 오버라이드 해야 함)
 - 값 타입의 equals() 메소드를 적절하게 재정의(주로 모든 필드 사용)
+
+# 값 타입 컬렉션
+- 값 타입을 컬렉션에 담아서 쓰는 것 (값 타입을 하나 이상 저장할 때 사용)
+- `@ElementCollection`, `@CollectionTable` 사용
+- 관계형 데이터베이스는 기본적으로 테이블 안에 컬렉션을 담을 수 있는 구조가 없고, 값만 넣을 수 있다.
+  - 때문에 아래와 같이 별도의 테이블을 생성해야 한다.
+  - 이 때, 값 타입의 값들을 모두 PK로 만들어야 한다. 그렇지 않고 ID를 만들어서 PK로 사용하면 Entity가 된다.
+![](https://github.com/Integerous/images/blob/master/study/jpa/jpa_valuetype_collection.png?raw=true)
+
+~~~java
+@Entity
+public class Member {
+    ...
+    ...
+    
+    @Embedded
+    private Address homeAddress;
+    
+    @ElementCollection // 값타입 컬렉션 매핑
+    @CollectionTable(name = "FAVORITE_FOOD", // 테이블명 지정
+        joinColums = @JoinColumn(name = "MEMBER_ID")) // MEMBER_ID를 외래키로 잡음
+    @Column(name = "FOOD_NAME") // 컬럼명 지정
+    private Set<String> favoriteFoods = new HashSet<>();
+    
+    @ElementCollection
+    @CollectionTable(name = "ADDRESS",
+        joinColumns = @JoinColumn(name = "MEMBER_ID"))
+    private List<Address> addressHistory = new ArrayList<>();
+}
+~~~
+
+- **값 타입 컬렉션은 그 자체로 라이프사이클이 없다.**
+  - 때문에 아래와 같이 Member만 persist()해도 값 타입 컬렉션은 다른 테이블임에도 라이프사이클이 Member와 같이 돌아간다.
+  - 즉, Member에 의존한다.
+  - 값 타입 컬렉션은 `@OneToMany(cascade = ALL, orphanRemoval = true)`와 같이 영속성 전이와 고아 객체 제거 기능을 필수로 가진다고 볼 수 있다.
+- `@ElementCollection`은 LazyLoading이 디폴트다.
+  - 즉, 값 타입 컬렉션은 기본적으로 지연로딩 전략이 사용된다.
+  - 위의 코드에서 Member만 조회할 경우 임베디드 타입인 homeAddress는 같이 조회되지만, 값 타입 컬렉션인 favoriteFoods와 addressHistory는 조회되지 않는다.
+~~~java
+...
+
+Member member = new Member();
+member.setUsername("member1");
+member.setHomeAddress(newe Address("homeCity", "street");
+
+member.getFavoriteFoods().add("치킨");
+member.getFavoriteFoods().add("피자");
+member.getFavoriteFoods().add("족발");
+
+member.getAddressHistory().add(new Address("old1", "street"));
+member.getAddressHistory().add(new Address("old2", "street"));
+
+em.persist(member);
+~~~
