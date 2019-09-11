@@ -1014,7 +1014,7 @@ public class Member {
     @Embedded
     private Address homeAddress;
     
-    @ElementCollection // 값타입 컬렉션 매핑
+    @ElementCollection // 값타입 컬렉션 매핑 (기본값 = LAZY)
     @CollectionTable(name = "FAVORITE_FOOD", // 테이블명 지정
         joinColums = @JoinColumn(name = "MEMBER_ID")) // MEMBER_ID를 외래키로 잡음
     @Column(name = "FOOD_NAME") // 컬럼명 지정
@@ -1050,3 +1050,113 @@ member.getAddressHistory().add(new Address("old2", "street"));
 
 em.persist(member);
 ~~~
+
+### 값 타입 수정
+- 값 타입의 필드 하나를 수정하면 안되고, 값 타입 자체를 교체해야 한다.
+
+~~~java
+//homeCity -> newCity
+findMember.getHomeAddress().setCity("newCity"); // 이렇게 하면 안된다. (사이드이펙트 발생함)
+
+findMember.setHomeAddress(new Address("newCity", ...)); // 값 타입의 수정은 이렇게 해야 한다.
+~~~
+
+### 값 타입 컬렉션 수정
+~~~java
+//값 타입 컬렉션 :
+Set<String> favoriteFoods
+
+//컬렉션 안의 치킨->한식
+findMember.getFavoriteFoods().remove("치킨");
+findMember.getFavoriteFoods().add("한식");
+
+//위의 값 타입 컬렉션의 String도 값 타입이기 때문에 통째로 갈아끼워야 한다. 
+~~~
+
+~~~java
+// 아래 주소에서 old1 -> new1 으로 바꾸려면
+Address address = new Address("old1, street, 1000");
+
+// 우선 아래와 같은 방식으로 지워야 한다.
+// 그런데 이 때, Address에 equals()와 hashCode() 메서드가 구현이 안되어 있으면 망한다.
+findMember.getAddressHistory().remove(new Address("old1, street, 1000"));
+
+// 그리고 새로 추가한다.
+findMember.getAddressHistory().add(new Address("new1, street, 1000"));
+~~~
+
+
+### 값 타입 컬렉션의 제약사항
+- **값 타입은 Entity와 다르게 식별자 개념이 없다.**
+- 때문에 값을 변경하면 추적이 안된다.
+- 그래서 값 타입 컬렉션에 변경 사항이 발생하면, 주인 Entity와 연관된 모든 데이터를 삭제하고, 값 타입 컬렉션에 있는 현재 값을 모두 다시 저장한다.
+- 값 타입 컬렉션을 매핑하는 테이블은 모든 컬럼을 묶어서 기본키를 구성해야 한다. (null 입력 X, 중복 저장 X)
+
+### 값 타입 컬렉션 대안
+- 실무에서는 상황에 따라 값 타입 컬렉션 대신에 일대다 관계를 고려
+- 일대다 관계를 위한 Entity를 만들고, 여기에 값 타입을 사용
+- 영속성 전이(Cascade) + 고아 객체 제거를 사용해서 값 타입 컬렉션 처럼 사용
+
+~~~java
+@Entity
+@Table(name="ADDRESS")
+@AllArgsConstructor
+@Getter
+@Setter
+public class AddressEntity {
+    
+    @Id @GeneratedValue
+    private Long id;
+    
+    private Address address; // 얘는 값 타입
+}
+~~~
+
+~~~java
+@Entity
+public class Member {
+    ...
+    ...
+    
+    @Embedded
+    private Address homeAddress;
+    
+    @ElementCollection // 값타입 컬렉션 매핑 (기본값 = LAZY)
+    @CollectionTable(name = "FAVORITE_FOOD", // 테이블명 지정
+        joinColums = @JoinColumn(name = "MEMBER_ID")) // MEMBER_ID를 외래키로 잡음
+    @Column(name = "FOOD_NAME") // 컬럼명 지정
+    private Set<String> favoriteFoods = new HashSet<>();
+    
+    // @ElementCollection
+    // @CollectionTable(name = "ADDRESS",
+    //    joinColumns = @JoinColumn(name = "MEMBER_ID"))
+    //private List<Address> addressHistory = new ArrayList<>();
+    
+    // 위와 같이 값타입 컬렉션으로 매핑하는 대신
+    // 아래와 같이 Entity로 매핑한다.
+    // AddressEntity 쪽에 @ManyToOne을 써서 (oneToMany - manyToOne) 기본매핑을 사용해도 되지만,
+    // 이 케이스에서는 cascade.ALL과 orphanRemoval=true 로 잡고, @JoinColumn을 써서 일대다 단방향 매핑을 한다.
+    // 이렇게 사용하면, 위에서 값타입으로 매핑하는 것보다 훨씬 활용도가 높아진다.
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
+    @JoinColumn(name = "MEMBER_ID")
+    private List<AddressEntity> addressHistory = new ArrayList<>();
+}
+~~~
+
+### 값 타입 컬렉션은 언제쓰는가?
+- 단순할 때 사용
+  - 예를 들어 select box에 [치킨, 피자]를 멀티로 선택할 수 있도록 할 때 사용
+  - 값이 바뀌어도 업데이트 할 필요가 없을 때 값 타입 컬렉션을 사용하고,
+  - 왠만하면 사용하지 않는다.
+  
+### 정리
+- **Entity 타입 특징**
+  - 식별자 O
+  - 생명 주기 관리
+  - 공유
+- **값 타입 특징**
+  - 식별자 X
+  - 생명 주기를 엔티티에 의존
+  - 공유하지 않는 것이 안전(복사해서 사용)
+  - 불변 객체로 만드는 것이 안전
+- 즉, 식별자가 필요하고, 지속해서 값을 추적, 변경해야 한다면 그것은 값 타입이 아닌 Entity이다.
