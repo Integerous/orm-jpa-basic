@@ -17,9 +17,14 @@ public class Member extends BaseEntity{
     @Column(name = "MEMBER_ID")
     private Long id;
     private String name;
-    private String city;
-    private String street;
-    private String zipcode;
+
+//    private String city;
+//    private String street;
+//    private String zipcode;
+
+    // 위의 3가지 주소정보를 Address라는 값타입으로 대체
+    @Embedded // 생략 가능
+    private Address address;
 
     @OneToMany(mappedBy = "member")
     private List<Order> orders = new ArrayList<>(); // Member가 orders를 가지고 있는 것은 좋은 설계가 아니다.
