@@ -1225,3 +1225,47 @@ List<Member> resultList =
     - commit 될 때
     - query 날라갈 때(.createQuery 또는 .createNativeQuery 등)
   - JPA를 우회해서 SQL을 실행하기 직전에 영속성 컨텍스트 수동 플러시
+  
+
+# JPQL 문법
+- `select m from Member as m where m.age > 18`
+- Entity와 속성은 대소문자를 구분한다. (Member, age)
+- JPQL 키워드는 대소문자를 구분하지 않는다. (SELECT, FROM, where)
+- Entity의 이름 사용. 테이블 이름이 아니다.
+- **별칭(m)은 필수** (as는 생략 가능)
+
+### TypeQuery, Query
+- TypeQuery는 반환타입이 명확할 때 사용
+  ~~~java
+  TypedQuery<Member> query =
+      em.createQuery("SELECT m FROM Member m", Member.class)
+  ~~~
+- Query는 반환타입이 명확하지 않을 때 사용
+  ~~~java
+  Query query =
+      em.createQuery("SELECT m.username, m.age from Member m");
+  ~~~
+  
+### 결과 조회
+- `query.getResultList()`
+  - 결과가 1개 이상일 때 사용
+  - 리스트 반환
+  - 결과가 없으면 빈 리스트 반환
+- `query.getSingleResult()`
+  - 결과가 1개일 때 사용
+  - 단일 객체 반환
+  - 결과가 없으면 `javax.persistence.NoResultException`
+    - Spring Data JPA는 null 반환
+  - 둘 이상이면 `javax.persistence.NonUniqueResultException` 발생
+  
+### 파라미터 바인딩
+- 이름 기준
+  ~~~java
+  select m from Member m where m.username=:username
+  query.setParameter("username", usernameParam);
+  ~~~
+- 위치 기준
+  ~~~java
+  select m from Member m where m.username=?1
+  query.setParameter(1, usernameParam);
+  ~~~
