@@ -11,19 +11,6 @@ EntityManagerFactory 라는 클래스를 생성한다.
 - RDB는 데이터 변경을 트랜잭션안에서 실행되도록 다 설계되어 있다. 때문에 트랜잭션을 걸지 않아도 DB가 트랜잭션 개념을 가지고 있기 때문에 트랜잭션 안에서 데이터가 변경된다.
 
 
-# JPQL
-
-- JPQL은 SQL을 추상화한 객체지향 쿼리이다. (한마디로 JPQL = 객체지향 SQL)
-  - JPQL은 Entity 객체를 대상으로 쿼리하고,
-  - SQL은 DB 테이블을 대상으로 쿼리한다.
-- 검색을 할 때에도 테이블이 아닌 Entity 객체를 대상으로 검색한다.
-- 모든 DB 데이터를 객체로 변환해서 검색하는 것은 불가능하다.
-- 어플리케이션이 필요한 데이터만 DB에서 불러오려면 결국 검색 조건이 포함된 SQL이 필요하다.
-  - DB의 테이블을 대상으로 쿼리를 날리면 해당 DB에 종속적인 설계가 된다.
-  - 때문에 Entity 객체를 대상으로 쿼리를 할 수 있는 JPQL이 제공된 것이다.
-- 방언을 바꿔도 JPQL을 바꿀 필요가 없다. (특정 데이터베이스 SQL에 의존하지 않는다.)
-
-
 # 영속성 컨텍스트 (PersistenceContext)
 
 ### JPA에서 가장 중요한 2가지
@@ -1160,3 +1147,81 @@ public class Member {
   - 공유하지 않는 것이 안전(복사해서 사용)
   - 불변 객체로 만드는 것이 안전
 - 즉, 식별자가 필요하고, 지속해서 값을 추적, 변경해야 한다면 그것은 값 타입이 아닌 Entity이다.
+
+
+# JPQL
+
+- JPQL은 SQL을 추상화한 객체지향 쿼리이다. (한마디로 JPQL = 객체지향 SQL)
+  - JPQL은 Entity 객체를 대상으로 쿼리하고,
+  - SQL은 DB 테이블을 대상으로 쿼리한다.
+- **검색을 할 때에도 테이블이 아닌 Entity 객체를 대상으로 검색**한다.
+- 모든 DB 데이터를 객체로 변환해서 검색하는 것은 불가능하다.
+- 어플리케이션이 필요한 데이터만 DB에서 불러오려면 결국 검색 조건이 포함된 SQL이 필요하다.
+  - DB의 테이블을 대상으로 쿼리를 날리면 해당 DB에 종속적인 설계가 된다.
+  - 때문에 Entity 객체를 대상으로 쿼리를 할 수 있는 JPQL이 제공된 것이다.
+- 방언을 바꿔도 JPQL을 바꿀 필요가 없다. (특정 데이터베이스 SQL에 의존하지 않는다.)
+
+~~~java
+List<Member> result = em.createQuery(
+        "select m From Member m where m.username like '%kim%'", Member.class 
+).getResultList();
+// 여기서 Member는 테이블이 아니라 엔티티
+~~~
+
+### Criteria
+- 문자가 아닌 Java코드로 JPQL을 작성하므로 컴파일 오류를 잡아주고, 동적쿼리를 작성하기 수월하다.
+- 하지만 SQL스럽지 않아 이해하기 힘들어서 실무에서 안쓴다.
+- 대신 QueryDSL 사용 권장
+
+~~~java
+// Criteria 사용 준비
+CriteriaBuilder cb = em.getCriteriaBuilder();
+CriteriaQuery<Member> query = cb.createQuery(Member.class);
+
+// 루트 클래스 (조회를 시작할 클래스)
+Root<Member> m = query.from(Member.class);
+
+// 쿼리 생성
+CriteriaQuery<Member> cq = query.select(m).where(cb.equal(m.get("username"), "kim"));
+List<Member> resultList = em.createQuery(cq).getResultList();
+~~~
+
+### QueryDSL
+- 문자가 아닌 Java코드로 JPQL을 작성할 수 있다.
+- JPQL 빌더 역할
+- 컴파일 시점에 문법 오류를 찾을 수 있다.
+- 동적쿼리 작성에 편리하다.
+- 실무 사용 권장
+
+~~~java
+// JPQL
+// select m from Member m where m.age > 18
+JPAFactoryQuery query = new JPAQueryFactory(em);
+QMember m = QMember.member;
+
+List<Member> list =
+        query.selectFrom(m)
+             .where(m.age.gt(18))
+             .orderBy(m.name.desc())
+             .fetch();
+~~~
+
+### 네이티브 SQL
+- JPA가 제공하는 SQL을 직접 사용하는 기능
+- JPQL로 해결할 수 없는 특정 DB에 의존적인 기능
+  - 예) 오라클 CONNECT BY, 특정 DB만 사용하는 SQL 힌트
+  
+~~~java
+String sql = "SELECT ID, AGE, TEAM_ID, NAME FROM MEMBER WHERE NAME = 'kim'";
+
+List<Member> resultList = 
+            em.createNativeQuery(sql, Member.class).getResultList();
+~~~
+
+### JDBC, SpringJdbcTemplate 등
+- JPA를 사용하면서 JDBC 커넥션을 직접 사용하거나, SpringJdbcTemplate, MyBatis 등을 함께 사용 가능
+- 단, **영속성 컨텍스트를 적절한 시점에 강제로 flush 필요**
+  - flush가 호출되는 상황 2가지
+    - commit 될 때
+    - query 날라갈 때(.createQuery 또는 .createNativeQuery 등)
+  - JPA를 우회해서 SQL을 실행하기 직전에 영속성 컨텍스트 수동 플러시
