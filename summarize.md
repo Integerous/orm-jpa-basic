@@ -1119,11 +1119,14 @@ public class Member {
     //    joinColumns = @JoinColumn(name = "MEMBER_ID"))
     //private List<Address> addressHistory = new ArrayList<>();
     
-    // 위와 같이 값타입 컬렉션으로 매핑하는 대신
-    // 아래와 같이 Entity로 매핑한다.
-    // AddressEntity 쪽에 @ManyToOne을 써서 (oneToMany - manyToOne) 기본매핑을 사용해도 되지만,
-    // 이 케이스에서는 cascade.ALL과 orphanRemoval=true 로 잡고, @JoinColumn을 써서 일대다 단방향 매핑을 한다.
-    // 이렇게 사용하면, 위에서 값타입으로 매핑하는 것보다 훨씬 활용도가 높아진다.
+    /**
+    * 위와 같이 값타입 컬렉션으로 매핑하는 대신
+    * 아래와 같이 Entity로 매핑한다.
+    * AddressEntity 쪽에 @ManyToOne을 써서 (oneToMany - manyToOne) 기본매핑을 사용해도 되지만,
+    * 이 케이스에서는 cascade.ALL과 orphanRemoval=true 로 잡고, 
+    * @JoinColumn을 써서 일대다 단방향 매핑을 한다.
+    * 이렇게 사용하면, 위에서 값타입으로 매핑하는 것보다 훨씬 활용도가 높아진다.
+    */
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
     @JoinColumn(name = "MEMBER_ID")
     private List<AddressEntity> addressHistory = new ArrayList<>();
@@ -1269,3 +1272,81 @@ List<Member> resultList =
   select m from Member m where m.username=?1
   query.setParameter(1, usernameParam);
   ~~~
+  
+### 프로젝션
+- SELECT 절에 조회할 대상을 지정하는 것
+- 프로젝션 대상
+  - Entity
+  - 임베디드 타입
+  - 스칼라 타입(숫자, 문자등 기본 데이터 타입)
+  
+- `SELECT m FROM Member m` : Entity 프로젝션
+- `SELECT m.team FROM Member m` : Entity 프로젝션
+  - 위와 같이 작성하면 join 쿼리가 나간다는 사실을 알기 힘들다.
+  - 그러므로 명시적 조인 `SELECT t FROM Member m join m.team t` 을 사용하는 것이 좋다.
+- `SELECT m.address FROM Member m` : 임베디드 타입 프로젝션
+- `SELECT m.username, m.age FROM Member m` : 스칼라 타입 프로젝션
+
+
+~~~java
+Member member = new Member();
+member.setAge(10);
+em.persist(member);
+em.flush();
+em.clear();
+
+/**
+* 영속성 컨텍스트가 비어있는 이 상태에서 아래와 같이 Entity 프로젝션을 하면,
+* 대상이 된 Entity가 영속성 컨텍스트에서 모두 관리된다.
+*/
+List<Member> result = em.createQuery("select m from Member m", Member.class)
+                        .getResultList();
+
+Member findMember = result.get(0);
+findMember.setAge(20); // 조회 결과: 20.
+~~~
+
+### 프로젝션 여러 값 조회
+1. Query 타입으로 조회
+  ~~~java
+  List resultList = em.createQuery("select m.username, m.age from Member m")
+                      .getResultList();
+  
+  Object o = resultList.get(0);
+  Object[] result = (Object[]) o;
+  ~~~
+2. Object[] 타입으로 조회
+  ~~~java
+  List<Object[]> resultList = em.createQuery("select m.username, m.age from Member m", Object[].class)
+                                .getResultList();
+
+  Object[] result = resultList.get(0);
+  ~~~
+3. new 명령어로 조회
+  - 이 방법이 가장 깔끔하다.
+  - 단순 값을 DTO로 바로 조회한다.
+  - 패키지 명을 포함한 전체 클래스명을 입력해야 한다.
+  - 순서와 타입이 일치하는 생성자가 필요하다.
+  - 우선 MemberDTO 정의
+    ~~~java
+    @Getter
+    @Setter
+    public class MemberDTO {
+        
+        private String username;
+        private int age;
+    
+        public MemberDTO(String username, int age) {
+            this.username = username;
+            this.age = age;
+        }
+    }
+    ~~~
+  ~~~java
+  List<MemberDTO> resultList = em.createQuery("select new jpql.MemberDTO(m.username, m.age) from Member m", MemberDTO.class)
+                                .getResultList();
+
+  MemberDTO memberDTO = resultList.get(0);
+  ~~~
+  - 여기서 jpql.MemberDTO의 jpql은 패키지명이다.
+  - 때문에 패키지명이 길어지면 다 적어줘야 하는 것이 단점이다. (하지만 이 문제는 QueryDSL에서 극복할 수 있다.) 
