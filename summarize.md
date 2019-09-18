@@ -1376,15 +1376,66 @@ List<Member> resultList = em.createQuery(jpql, Member.class)
   - 연관관계가 없는 것들을 비교할 때 사용
   - `SELECT count(m) FROM Member m, Team t WHERE m.username=t.name`
 - **ON절을 활용한 조인**
-  - 1. 조인 대상 필터링
+  - 조인 대상 필터링
     - (예시) 회원과 팀을 조인하면서, 팀 이름이 A인 팀만 조인
       - JPQL
         - `SELECT m, t FROM Member m LEFT JOIN m.team t on t.name = 'A'`
       - 실제 나가는 SQL
         - `SELECT m.*, t.* FROM Member m LEFT JOIN Team t ON m.TEAM_ID=t.id and t.name='A'`
-  - 2. **연관관계 없는 Entity를 외부 조인** 할 수 있다.(Hibernate 5.1^)
+  - **연관관계 없는 Entity를 외부 조인** 할 수 있다.(Hibernate 5.1^)
     - (예시) 회원의 이름과 팀의 이름이 같은 대상 외부 조인
       - JPQL
         - `SELECT m, t FROM Member m LEFT JOIN Team t ON m.username = t.name`
       - 실제 나가는 SQL
         - `SELECT m.*, t.* FROM Member m LEFT JOIN Team t ON m.username = t.name`
+
+
+### 서브 쿼리
+
+~~~sql
+// 나이가 평균보다 많은 회원
+SELECT m FROM Member m
+WHERE m.age > (SELECT avg(m2.age) FROM Member m2) 
+// m 대신 m2 사용한 점 주목.
+// 메인쿼리와 서브쿼리가 관계없어야 서브쿼리 성능에 좋다.
+~~~
+
+~~~sql
+// 한 건이라도 주문한 고객
+SELECT m FROM Member m
+WHERE (SELECT count(o) FROM Order o WHERE m = o.member) > 0
+// m을 그대로 사용하면 성능이 잘 안나옴.
+~~~
+
+### 서브 쿼리 지원 함수
+- `[NOT] EXISTS (subquery)` : 서브쿼리에 결과가 존재하면 참
+  - {ALL | ANY | SOME} (subquery)
+  - ALL = 모두 만족하면 참
+  - ANY, SOME = 같은 의미, 조건을 하나라도 만족하면 참
+- `[NOT] IN (subquery)` : 서브쿼리의 결과 중 하나라도 같은 것이 있으면 참 
+
+#### 예시 
+- 팀A 소속인 회원
+    ~~~sql
+    SELECT m FROM Member m
+    WHERE exists(SELECT t FROM m.team t WHERE t.name = '팀A')
+    ~~~
+- 전체 상품 각각의 재고보다 주문량이 많은 주문들
+    ~~~sql
+    SELECT o FROM Order o
+    WHERE o.orderAmount > ALL (SELECT p.stockAmount FROM Product p)
+    ~~~
+- 어떤 팀이든 팀에 소속된 회원
+    ~~~sql
+    SELECT m FROM Member m
+    WHERE m.team = ANY (SELECT t FROM Team t)
+    ~~~
+    
+### JPA 서브쿼리 한계
+- JPA 표준스펙에는 WHERE, HAVING 절에서만 서브쿼리 사용 가능
+  - 보통 구현체를 하이버네이트를 쓰는데, 하이버네이트에서는 SELECT 절에서도 가능
+    - `SELECT (SELECT avg(m1.age) FROM Member m1) as avgAge FROM Member`
+- **FROM 절의 서브쿼리는 현재 JPQL에서 불가능**
+  - FROM 절의 서브쿼리 = `SELECT mm FROM (SELECT m.age FROM Member m) as mm`
+  - 조인으로 풀 수 있으면 풀어서 해결
+  - 안되면 네이티브 쿼리를 쓰거나, 어플리케이션에서 조립하거나, 쿼리를 2번 날린다.
