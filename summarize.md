@@ -1350,3 +1350,41 @@ findMember.setAge(20); // 조회 결과: 20.
   ~~~
   - 여기서 jpql.MemberDTO의 jpql은 패키지명이다.
   - 때문에 패키지명이 길어지면 다 적어줘야 하는 것이 단점이다. (하지만 이 문제는 QueryDSL에서 극복할 수 있다.) 
+
+
+### 페이징 API
+- 페이징은 사실 **몇 번째부터 몇 개 가져올래?**가 전부다.
+- 그래서 JPA는 페이징을 다음 두 API로 추상화했다.
+  - `setFirstResult(int startPosition)` : 조회 시작 위치(0부터 시작)
+  - `setMaxResult(int maxResult)` : 조회할 데이터 수
+  
+~~~java
+String jpql = "select m from Member m order by m.name desc";
+List<Member> resultList = em.createQuery(jpql, Member.class)
+        .setFirstResult(10)
+        .setMaxResults(20)
+        .getResultList();
+~~~
+
+### 조인
+- SQL 조인과 실행되는 것은 똑같지만, JPQL의 조인은 Entity를 중심으로 조인쿼리가 나간다.
+- **내부 조인**
+  - `SELECT m FROM Member m [INNER] JOIN m.team t`
+- **외부 조인**
+  - `SELECT m FROM Member m LEFT [OUTER] JOIN m.team t`
+- **세타 조인**
+  - 연관관계가 없는 것들을 비교할 때 사용
+  - `SELECT count(m) FROM Member m, Team t WHERE m.username=t.name`
+- **ON절을 활용한 조인**
+  - 1. 조인 대상 필터링
+    - (예시) 회원과 팀을 조인하면서, 팀 이름이 A인 팀만 조인
+      - JPQL
+        - `SELECT m, t FROM Member m LEFT JOIN m.team t on t.name = 'A'`
+      - 실제 나가는 SQL
+        - `SELECT m.*, t.* FROM Member m LEFT JOIN Team t ON m.TEAM_ID=t.id and t.name='A'`
+  - 2. **연관관계 없는 Entity를 외부 조인** 할 수 있다.(Hibernate 5.1^)
+    - (예시) 회원의 이름과 팀의 이름이 같은 대상 외부 조인
+      - JPQL
+        - `SELECT m, t FROM Member m LEFT JOIN Team t ON m.username = t.name`
+      - 실제 나가는 SQL
+        - `SELECT m.*, t.* FROM Member m LEFT JOIN Team t ON m.username = t.name`
