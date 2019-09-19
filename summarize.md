@@ -1439,3 +1439,19 @@ WHERE (SELECT count(o) FROM Order o WHERE m = o.member) > 0
   - FROM 절의 서브쿼리 = `SELECT mm FROM (SELECT m.age FROM Member m) as mm`
   - 조인으로 풀 수 있으면 풀어서 해결
   - 안되면 네이티브 쿼리를 쓰거나, 어플리케이션에서 조립하거나, 쿼리를 2번 날린다.
+  
+### JPQL 타입 표현
+- 문자: 'HELLO', 'She''s'
+- 숫자: 10L(Long), 10D(Double), 10F(Float)
+- Boolean: TRUE, FALSE
+- ENUM : jpabook.MemberType.Admin (패키지명 포함)
+- Entity 타입 : TYPE(m) = Member (상속 관계에서 사용)
+
+~~~sql
+SELECT m.username, 'HELLO', TRUE FROM Member m
+WHERE m.type = jpql.MemberType.USER
+~~~
+
+~~~sql
+SELECT i FROM Item i WHERE type(i) = Book
+~~~
