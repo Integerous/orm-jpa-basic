@@ -1455,3 +1455,36 @@ WHERE m.type = jpql.MemberType.USER
 ~~~sql
 SELECT i FROM Item i WHERE type(i) = Book
 ~~~
+
+### 조건식
+- 기본 CASE 식
+  ~~~sql
+  SELECT
+      CASE WHEN m.age <= 10 THEN '학생요금'
+           WHEN m.age >= 60 THEN '경로요금'
+           ELSE '일반요금'
+      END
+  FROM Member m
+  ~~~
+- 단순 CASE 식
+  ~~~sql
+  SELECT
+      CASE t.name
+          WHEN '팀A' THEN '인센티브110%'
+          WHEN '팀B' THEN '인센티브120%'
+          ELSE '인센티브105%'
+      END
+  FROM Team t
+  ~~~
+- COALESCE
+  - 하나씩 조회해서 null이 아니면 반환
+  - 예시) 사용자 이름이 없으면 '이름 없는 회원'을 반환
+  ~~~sql
+  SELECT COALESCE(m.username, '이름 없는 회원') FROM Member m
+  ~~~
+- NULLIF
+  - 두 값이 같으면 null 반환, 다르면 첫번째 값 반환
+  - 예시) 사용자 이름이 '관리자'면 null을 반환하고 나머지는 본인의 이름을 반환
+  ~~~sql
+  SELECT NULLIF(m.username, '관리자') FROM Member m
+  ~~~
