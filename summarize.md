@@ -1488,3 +1488,30 @@ SELECT i FROM Item i WHERE type(i) = Book
   ~~~sql
   SELECT NULLIF(m.username, '관리자') FROM Member m
   ~~~
+  
+### JPQL 기본 함수
+- JPQL 표준함수(DB에 관계없이 쓰면 된다.)
+  - CONCAT
+  - SUBSTRING
+  - TRIM
+  - LOWER, UPPER
+  - LENGTH
+  - LOCATE
+    - `SELECT LOCATE('de', 'abcdef') FROM Member m`
+    - `abcdef`에서 `de`가 시작되는 위치 4 반환
+  - ABS, SQRT, MOD
+  - SIZE, INDEX(JPA 용도)
+- 사용자 정의 함수
+  - 하이버네이트는 사용 전 방언에 추가해야 한다.
+    - 사용하는 DB 방언을 상속받고, 사용자 정의 함수를 등록한다.
+  - `SELECT FUNCTION('group_concat', m.username) FROM Member m` 또는
+  - `SELECT group_concat(m.username) FROM Member m`
+    - 위 함수를 사용하기 위해서 아래와 같이 함수 정의
+      ~~~java
+      public class MyH2Dialect extends H2Dialect {
+          
+          public MyH2Dialect() {
+              registerFunction("group_concat", new StandardSQLFunction("group_concat", StandardBasicTypes.STRING));
+          }
+      }
+      ~~~
