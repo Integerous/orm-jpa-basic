@@ -1515,3 +1515,55 @@ SELECT i FROM Item i WHERE type(i) = Book
           }
       }
       ~~~
+
+### JPQL 경로표현식
+- 점(.)을 찍어 객체 그래프를 탐색하는 것
+~~~sql
+select m.username //상태필드
+  from Member m 
+    join m.team t // 단일값 연관 필드
+    join m.orders o // 컬렉션값 연관 필드
+where t.name = '팀A'
+~~~
+- 상태필드, 단일값 연관 필드, 컬렉션값 연관 필드에 따라 결과값이 달라지므로 꼭 구분해서 사용해야 한다.
+- **상태 필드(state field)**
+  - 단순히 값을 저장하기 위한 필드
+  - `m.username`
+- **연관 필드(association field)**
+  - 연관관계를 위한 필드
+  - **단일 값 연관 필드**
+    - `@ManyToOne`
+    - `@OneToOne`
+    - 대상이 Entity (`m.team`)
+  - **컬렉션 값 연관 필드**
+    - `@OneToMany`
+    - `@ManyToMany`
+    - 대상이 컬렉션(`m.orders`)
+
+### JPQL 경로표현식 특징
+- 상태 필드(state field)
+  - 경로 탐색의 끝
+  - 더 이상 탐색 불가능
+- 단일 값 연관 경로
+  - **묵시적 내부 조인(inner join)** 발생
+  - 탐색 가능
+- 컬렉션 값 연관 경로
+  - 묵시적 내부 조인 발생
+  - 더 이상 탐색 불가능
+  - From 절에서 명시적 조인을 통해 별칭을 얻으면, 별칭을 통해 탐색 가능
+
+>실무에서는 묵시적 조인을 되도록 쓰지 말고, 명시적 조인을 쓰는 것이 좋다!
+- 명시적 조인
+  - join 키워드 직접 사용
+  - `SELECT m FROM Member m JOIN m.team t`
+- 묵시적 조인
+  - 경로표현식에 의해 묵시적으로 SQL조인 발생 (내부 조인만 가능)
+  - `SELECT m.team FROM Member m`
+  
+### 경로표현식 예제
+- 성공
+  - `SELECT o.member.team FROM Order o`
+  - `SELECT t.members.username FROM Team t`
+  - `SELECT m.username FROM Team t JOIN t.members m`
+- 실패
+  - `SELECT t.members.username FROM Team t`
