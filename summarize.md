@@ -1567,3 +1567,76 @@ where t.name = '팀A'
   - `SELECT m.username FROM Team t JOIN t.members m`
 - 실패
   - `SELECT t.members.username FROM Team t`
+  
+
+### JPQL Fetch Join
+- 실무에서 엄청 중요하다.
+- SQL 조인의 종류가 아니다.
+- JPQL에서 성능 최적화를 위해 제공하는 기능이다.
+- 연관된 Entity나 컬렉션을 SQL 한 번에 함께 조회하는 기능이다.
+- join fetch 명령어 사용
+
+### Entity Fetch Join
+- 회원을 조회하면서 연관된 팀도 함께 조회(SQL 한 번에)
+- JPQL
+  ~~~sql
+  SELECT m FROM Member m JOIN FETCH m.team
+  ~~~
+- 실행된 SQL
+  ~~~sql
+  SELECT m.*, t.* FROM Member m INNER JOIN Team t ON m.team_id = t.id
+  ~~~
+
+### N+1 문제 해결하는 Fetch Join  
+~~~java
+String query = "SELECT m FROM Member m";
+List<Member> result = em.createQuery(query, Member.class).getResultList();
+for (Member member : result) {
+    System.out.println(member.getUsername() + member.getTeam().getName());
+}
+~~~
+위와 같이 쿼리하면 Member들을 가져오는 쿼리(1개)가 나가고,  
+`member.getTeam()`이 영속성 컨텍스트에 없으므로, member들이 속한 N개의 팀만큼 쿼리(N개)가 나간다.  
+이 문제를 해결하기 위해서는 아래와 같이 FETCH JOIN을 사용하면된다.  
+
+~~~java
+String query = "SELECT m FROM Member m JOIN FETCH m.team";
+List<Member> result = em.createQuery(query, Member.class).getResultList();
+for (Member member : result) {
+    System.out.println(member.getUsername() + member.getTeam().getName());
+}
+~~~
+
+
+### 컬렉션 Fetch Join
+- JPQL
+  ~~~sql
+  SELECT t 
+  FROM Team t JOIN FETCH t.members
+  WHERE t.name = '팀A'
+  ~~~
+- 실행된 SQL
+  ~~~sql
+  SELECT t.*, m.* 
+  FROM Team t 
+  INNER JOIN Member m ON t.id = m.team_id
+  WHERE t.name = '팀A'
+  ~~~
+
+### Fetch Join과 DISTINCT
+- SQL의 DISTINCT는 중복된 결과를 제거하는 명령
+- JPQL의 DISTINCT는 2가지 기능 제공
+  - SQL에 DISTINCT 추가
+  - 어플리케이션에서 Entity 중복 제거
+  
+~~~sql
+SELECT DISTINCT t 
+FROM Team t JOIN FETCH t.members
+WHERE t.name = '팀A'
+~~~
+
+### Fetch Join과 일반 Join의 차이
+- 일반 Join 실행시 연관된 Entity를 함께 조회하지 않는다.
+- JPQL은 결과를 반환할 때 연관관계를 고려하지 않는다. 단지 SELECT 절에 지정한 Entity만 조회할 뿐이다.
+- Fetch Join을 사용할 때만 연관된 Entity도 함께 조회(즉시 로딩)
+- **Fetch Join은 객체 그래프를 SQL 한방에 조회**하는 개념
