@@ -1668,3 +1668,34 @@ WHERE t.name = '팀A'
     - Fetch Join을 사용하고 어플리케이션에서 DTO로 바꿔서 반환한다.
     - 처음 JPQL 짤 때 부터 DTO로 가지고 온다.
 
+
+### 다형성 쿼리
+- **TYPE**
+  - 조회 대상을 특정 자식으로 한정
+    - 예) Item 중에 Book, Movie를 조회해라
+  - JPQL
+    ~~~sql
+    SELECT i FROM Item i 
+    WHERE TYPE(i) IN (Book, Movie)
+    ~~~
+  - 나가는 SQL
+    ~~~sql
+    SELECT i FROM Item i
+    WHERE i.DTYPE IN ('Book', 'Movie')
+    ~~~
+    - DTYPE = Discrimination Column
+
+- **TREAT**
+  - Java의 타입 캐스팅과 유사
+  - 상속 구조에서 부모 타입을 특정 자식 타입으로 다룰 때 사용
+    - 예) 부모인 Item과 자식 Book이 있다.
+  - JPQL
+    ~~~sql
+    SELECT i FROM Item i 
+    WHERE TREAT(i AS Book).author = 'kim'
+    ~~~
+  - 나가는 SQL
+    ~~~sql
+    SELECT i.* FROM Item i
+    WHERE i.DTYPE = 'Book' and i.author = 'kim'
+    ~~~
