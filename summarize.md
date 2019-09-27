@@ -1708,7 +1708,7 @@ WHERE t.name = '팀A'
 - 실행되는 SQL
   - `SELECT COUNT(m.id) as cnt FROM Member m` // 위의 JPQL 둘 다 이렇게 실행
 
-### Entity 직접 사용 - 기본키
+#### Entity 직접 사용 - 기본키
 - Entity를 파라미터로 전달
   ~~~java
   String jpql = "select m from Member m where m = :member";
@@ -1728,7 +1728,7 @@ WHERE t.name = '팀A'
   SELECT m.* FROM Member m WHERE m.id=? // 위의 두 경우 모두 이렇게 실행
   ~~~
 
-### Entity 직접 사용 - 외래키
+#### Entity 직접 사용 - 외래키
 ~~~java
 Team team = em.find(Team.class, 1L);
 
@@ -1749,3 +1749,40 @@ List resultList = em.createQuery(qlString)
 ~~~sql
 SELECT m.* FROM Member m WHERE m.team_id=?
 ~~~
+
+
+### Named 쿼리
+- 미리 정의해서 이름을 부여해두고 사용하는 JPQL
+- 정적 쿼리
+- 어노테이션과 XML에 정의할 수 있다.
+- 어플리케이션 로딩 시점에 초기화 후 재사용
+  - 로딩 시점에 SQL를 캐시해두고 재사용하기 때문에 성능상 이점
+- **어플리케이션 로딩 시점에 쿼리를 검증**
+
+~~~java
+@Entity
+@NamedQuery(
+        name = "Member.findByUsername",
+        query = "select m from Member where m.username = :username")
+public class Member {
+    ...
+}
+~~~
+
+~~~java
+List<Member> resultList =
+    em.createNamedQuery("Member.findByUsername", Member.class)
+            .setParameter("username", "회원1")
+            .getResultList();
+~~~
+
+- XML이 항상 우선권을 가진다.
+- 어플리케이션 운영 환경에 따라 다른 XML을 배포할 수 있다.
+- **Spring Data JPA의 아래 코드가 결국 JPA의 NamedQuery로 어플리케이션 로딩 시점에 파싱되어 문법오류도 잡아준다.**
+  ~~~java
+  public interface UserRepository extends JpaRepository<User, Long> {
+      
+      @Query("select u from User u where u.emailAddress = ?1")
+      User findByEmailAddress(String emailAddress);
+  }
+  ~~~
