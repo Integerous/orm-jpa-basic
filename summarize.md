@@ -1786,3 +1786,35 @@ List<Member> resultList =
       User findByEmailAddress(String emailAddress);
   }
   ~~~
+
+### 벌크 연산
+- 벌크 연산은 쉽게 말해 UPDATE문과 DELETE문이라고 생각하면 된다. (콕 찝어서 UPDATE, DELETE 하는 것 제외)
+- 재고가 10개 미만인 모든 상품의 가격을 10% 상승하려면 ?
+  - JPA 변경감지 기능으로 실행하려면 너무 많은 SQL 실행
+    - 재고가 10개 미만인 상품을 리스트로 조회한다.
+    - 상품 Entity의 가격을 10% 증가한다.
+    - 트랜잭션 커밋 시점에 변경감지가 동작한다.
+  - 변경된 데이터가 100건이라면 100번의 UPDATE SQL이 실행된다.
+
+#### 벌크 연산 예제
+- 쿼리 한번으로 여러 테이블의 Row 변경(Entity)
+- executeUpdate()의 결과는 영향받은 Entity의 수 반환
+- UPDATE, DELETE 지원
+- INSERT(insert into ..select, 하이버네이트 지원)
+
+~~~java
+String qlString = "update Product p " +
+                  "set p.price = p.price * 1.1 " +
+                  "where p.stockAmout < :stockAmout";
+
+int resultCount = em.createQuery(qlString)
+                    .setParameter("stockAmount", 10)
+                    .executeUpdate();
+~~~
+
+#### 벌크 연산 주의점
+- 벌크 연산은 영속성 컨텍스트를 무시하고 DB에 직접 쿼리한다. (DB에만 반영되고 영속성 컨텍스트에는 반영되지 않는다.)
+- 때문에 아래 두 가지 방법 중 하나로 사용해야 한다.
+  - 벌크 연산을 먼저 실행하거나,
+  - **벌크 연산 수행 후 영속성 컨텍스트 초기화(`em.clear()`)**
+    - Sprint Data JPA에서는 `@Modifying` 어노테이션을 붙여서 영속성 컨텍스트를 자동으로 초기화 할 수 있다.
