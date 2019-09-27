@@ -1699,3 +1699,53 @@ WHERE t.name = '팀A'
     SELECT i.* FROM Item i
     WHERE i.DTYPE = 'Book' and i.author = 'kim'
     ~~~
+    
+### Entity 직접 사용
+- JPQL에서 Entity를 직접 사용하면 SQL에서 해당 Entity의 기본 키를 사용
+- JPQL
+  - `SELECT COUNT(m.id) FROM Member m` // Entity의 아이디를 사용
+  - `SELECT COUNT(m) FROM Member m` // Entity를 직접 사용
+- 실행되는 SQL
+  - `SELECT COUNT(m.id) as cnt FROM Member m` // 위의 JPQL 둘 다 이렇게 실행
+
+### Entity 직접 사용 - 기본키
+- Entity를 파라미터로 전달
+  ~~~java
+  String jpql = "select m from Member m where m = :member";
+  List resultList = em.createQuery(jpql)
+                      .setParameter("member", member)
+                      .getResultList();
+  ~~~
+- 식별자를 직접 전달
+  ~~~java
+  String jpql = "select m from Member m where m = :member";
+  List resultList = em.createQuery(jpql)
+                      .setParameter("member", member)
+                      .getResultList();
+  ~~~
+- 실행된 SQL
+  ~~~sql
+  SELECT m.* FROM Member m WHERE m.id=? // 위의 두 경우 모두 이렇게 실행
+  ~~~
+
+### Entity 직접 사용 - 외래키
+~~~java
+Team team = em.find(Team.class, 1L);
+
+String qlString = "select m from Member m where m.team = :team"; //여기서 m.team은 Member의 Team(@JoinColumn("TEAM_ID"))이다.
+List resultList = em.createQuery(qlString)
+                  .setParameter("team", team)
+                  .getResultList();
+~~~
+
+~~~java
+String qlString = "select m from Member m where m.team.id = :teamId";
+List resultList = em.createQuery(qlString)
+                  .setParameter("teamId", teamId)
+                  .getResultList();
+~~~
+
+- 실행된 SQL
+~~~sql
+SELECT m.* FROM Member m WHERE m.team_id=?
+~~~
